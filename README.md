@@ -14,18 +14,20 @@ In Xcode: **File → Add Package Dependencies…**, paste `https://github.com/al
 Or in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/alexosnach/AppShellKit.git", from: "0.1.1")
+.package(url: "https://github.com/alexosnach/AppShellKit.git", from: "0.1.2")
 ```
+
+AppShellKit is pre-1.0: the API may change between minor versions.
 
 ## What you get
 
-- **Tabs with their own stacks.** Each tab gets a `NavigationStack` and a `StackRouter`. Stacks survive tab switches, folding and rotation (verified in the iPhone Duo simulator).
+- **Tabs with their own stacks.** Each tab gets a `NavigationStack` and a `StackRouter`. Navigation stacks are preserved across tab switches, rotation, and folding or unfolding (tested in the iPhone Duo simulator).
 - **One tab, no tab bar.** With a single tab, the bar is not shown.
 - **A modal layer** (`sheet` / `fullScreenCover`) above the tab bar, with its own stack, presentable from anywhere.
 - **Navigation as data.** `AppRouter` and `StackRouter` hold the state, so navigation is testable without UI.
 - **Commands** for cross-feature navigation: a feature exposes a command instead of its internals.
 - **Deep links** from any source (URL schemes, universal links, push, attribution SDKs) through one entry point.
-- **Dependency injection friendly.** Factories receive the routers, so view models get everything through `init`.
+- **Built for dependency injection.** Factories receive the routers, so view models get everything through `init`.
 
 ## Quick start
 
@@ -65,6 +67,8 @@ A tab without inner screens declares `typealias Route = Never` and skips `makeSc
 
 ### 2. Assemble the app (Composition Root)
 
+`Storage` here is your app's own `@Observable` class that conforms to your `StorageService` protocol.
+
 ```swift
 @main
 struct MyApp: App {
@@ -84,6 +88,8 @@ struct MyApp: App {
 ```
 
 ### 3. Navigate
+
+In the snippets below, `stack` is a `StackRouter` and `appRouter` is the `AppRouter`. In a factory they come from `context.stack` and `context.app`; in a screen, read them from the environment.
 
 Inside a tab or a modal, use its `StackRouter` (from `NavigationContext.stack` or `@Environment(StackRouter.self)`):
 
@@ -147,7 +153,15 @@ The library writes nothing to the console or the system log. Unknown deep links 
 
 ## Tab bar
 
-The tab bar is the system one: Liquid Glass, VoiceOver, Dynamic Type and adaptive layouts come from Apple. Only the selected color can be changed; the Liquid Glass tab bar ignores every public API for the unselected color.
+The tab bar is the system one: Liquid Glass, VoiceOver, Dynamic Type and adaptive layouts come from Apple. Only the selected item's color can be customized (`tabBarSelectedColor`); the unselected color follows the system.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## Issues and contributions
+
+Found a bug or have an idea? Open an issue at https://github.com/alexosnach/AppShellKit/issues. Pull requests are welcome.
 
 ## License
 

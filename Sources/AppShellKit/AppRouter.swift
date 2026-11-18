@@ -34,8 +34,11 @@ public final class AppRouter {
     /// - Parameters:
     ///   - tabIDs: Tab identifiers in display order. The first one is selected at launch.
     ///   - deepLinkHandlers: Handlers for `open(_:)`, asked in order.
-    /// - Precondition: Identifiers are unique. A duplicate traps at launch
-    ///   (fail fast): it is a programmer error, not a user error.
+    /// - Precondition: Identifiers are unique. A duplicate traps when this
+    ///   initializer is called (fail fast): it is a programmer error, not a user error.
+    ///
+    /// An empty `tabIDs` does not trap: `selectedTab` becomes `""` and no tab
+    /// can be selected. `RootTabView` itself requires at least one tab.
     public init(tabIDs: [String], deepLinkHandlers: [any DeepLinkHandler] = []) {
         selectedTab = tabIDs.first ?? ""
         stacks = Dictionary(uniqueKeysWithValues: tabIDs.map { ($0, StackRouter()) })

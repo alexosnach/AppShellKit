@@ -44,12 +44,15 @@ public protocol DeepLinkHandler {
 /// A ready-made command that presents a modal. Lets deep links and other
 /// non-view code open modals without writing a command per modal (DRY).
 public struct PresentModal<Destination: ModalDestination>: NavigationCommand {
+    /// The modal to present.
     public let destination: Destination
 
+    /// Creates a command that presents `destination`.
     public init(destination: Destination) {
         self.destination = destination
     }
 
+    /// Presents the modal through `AppRouter.present(_:)`, replacing any modal on screen.
     public func execute(on router: AppRouter) {
         router.present(destination)
     }

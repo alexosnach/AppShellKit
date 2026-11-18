@@ -13,7 +13,8 @@ import SwiftUI
 public nonisolated enum ModalStyle {
     /// A card that slides up and can be swiped down.
     case sheet
-    /// Covers the whole screen; closes only via `AppRouter.dismiss()`.
+    /// Covers the whole screen and can't be swiped away. Closes via
+    /// `AppRouter.dismiss()`, or when another modal replaces it (`AppRouter.present(_:)`).
     case fullScreen
 }
 
@@ -75,12 +76,16 @@ public nonisolated struct SheetConfiguration {
 
 /// A modal that is currently on screen, together with its own stack.
 ///
-/// Created by `AppRouter.present(_:)`. The fresh `id` makes SwiftUI treat each
+/// Created only by `AppRouter.present(_:)`; apps read it through
+/// `AppRouter.modal`. The fresh `id` makes SwiftUI treat each
 /// presentation as new, and the fresh `StackRouter` starts every modal at its root.
 @MainActor
 public struct PresentedModal: Identifiable {
+    /// A new identifier for every presentation.
     public let id = UUID()
+    /// The modal being shown.
     public let destination: any ModalDestination
+    /// The modal's own navigation stack. Starts empty, at the modal's root.
     public let stack = StackRouter()
 
     init(destination: any ModalDestination) {

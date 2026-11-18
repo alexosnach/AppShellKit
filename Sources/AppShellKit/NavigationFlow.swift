@@ -30,8 +30,8 @@ public struct NavigationContext {
 ///
 /// Shared by tabs (`TabDescriptor`) and modals (`ModalDestination`), so both
 /// build their stacks the same way (DRY). Each of them adds only what is
-/// specific to it (Interface Segregation): a tab adds a title and an icon,
-/// a modal adds a presentation style.
+/// specific to it (Interface Segregation): a tab adds an identifier, a title, an icon
+/// and a badge; a modal adds a presentation style and sheet options.
 ///
 /// The conforming type is the feature's **assembly**: it holds the services it
 /// was given in `init` and builds every screen and view model of the flow.
@@ -61,7 +61,8 @@ public protocol NavigationFlow {
     /// Factory: builds the screen for a route of this flow.
     ///
     /// Don't register `.navigationDestination` yourself: the container does it
-    /// for `Route`, so a route can never be pushed without a screen.
+    /// for `Route`, so every value of `Route` has a screen. `StackRouter.push(_:)`
+/// accepts any `Hashable`, though: pushing a value of another type shows nothing.
     ///
     /// - Important: SwiftUI may call this many times. Let the screen own its
     ///   view model with `@State`, so the first instance is kept and the rest
