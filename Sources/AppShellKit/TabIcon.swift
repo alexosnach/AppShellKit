@@ -10,7 +10,7 @@ import SwiftUI
 /// A tab icon.
 ///
 /// This is **data**: the type says *which* icon is needed. How to draw it is up
-/// to the tab bar style.
+/// to the container (`RootTabView`).
 ///
 /// `nonisolated`: plain data, usable from any actor (the module defaults to `MainActor`).
 public nonisolated enum TabIcon {

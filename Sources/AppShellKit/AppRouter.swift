@@ -7,17 +7,22 @@
 
 import SwiftUI
 
-/// App-wide navigation state: the selected tab and the stack of every tab.
+/// App-wide navigation: the selected tab, the stack of every tab, the modal
+/// on screen, and the entry points for commands and deep links.
 ///
 /// Responsibilities are split (SRP):
 /// - `StackRouter` owns a single stack;
-/// - `AppRouter` owns the set of tabs and the selection between them.
+/// - `AppRouter` owns everything above the stacks: tabs, the modal layer,
+///   commands and deep links.
+///
+/// Screens get it via `@Environment(AppRouter.self)`; factories get it as
+/// `NavigationContext.app` and pass it into view models.
 ///
 /// In the Command pattern this type is both the **Receiver** (commands act on it)
 /// and the **Invoker** (`perform(_:)` is the single entry point).
 @MainActor @Observable
 public final class AppRouter {
-    /// The `id` of the selected tab. `TabView` binds to it directly.
+    /// The `id` of the selected tab. Read-only outside the library: change it with `select(_:)`.
     public internal(set) var selectedTab: String
 
     /// The stack of every tab, keyed by tab `id`. Created once and kept for the app's lifetime.
@@ -48,7 +53,10 @@ public final class AppRouter {
     }
 
     /// Selects a tab.
+    ///
+    /// - Precondition: A tab with this `id` exists.
     public func select(_ tabID: String) {
+        precondition(stacks[tabID] != nil, "No tab with id '\(tabID)'")
         selectedTab = tabID
     }
 
@@ -73,10 +81,10 @@ public final class AppRouter {
     /// Performs a navigation command. The single entry point for cross-tab
     /// navigation, deep links and push notifications.
     ///
-    /// This is also the place for navigation logging and analytics: added once,
-    /// it applies to every command.
+    /// The library writes nothing to the console or the system log. Because
+    /// every command goes through here, this is also the one place an app would
+    /// hook its own logging or analytics, if it wants any.
     public func perform(_ command: any NavigationCommand) {
-        print("▶︎ navigation:", command)
         command.execute(on: self)
     }
 
@@ -96,7 +104,6 @@ public final class AppRouter {
                 return true
             }
         }
-        print("⚠︎ unhandled deep link:", url)
         return false
     }
 }

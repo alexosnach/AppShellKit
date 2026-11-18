@@ -40,6 +40,10 @@ public protocol NavigationFlow {
     associatedtype Root: View
 
     /// The routes inside this flow. Usually a feature-owned `enum`.
+    ///
+    /// - Important: In a module with main-actor default isolation (the Xcode 26
+    ///   app template), declare it `nonisolated enum`: a route is plain data,
+    ///   and its `Hashable` conformance must not be tied to the main actor.
     associatedtype Route: Hashable
 
     /// The screen type built by the factory.

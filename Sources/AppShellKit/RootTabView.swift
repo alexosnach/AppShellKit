@@ -13,10 +13,13 @@ import SwiftUI
 /// - every tab has its own `NavigationStack` and its own `StackRouter`;
 /// - a tab's stack is preserved when switching tabs;
 /// - with a single tab, no tab bar is shown — just that tab's stack;
-/// - every screen's environment contains its tab's `StackRouter` and the shared `AppRouter`.
+/// - every screen's environment contains its tab's `StackRouter` and the shared `AppRouter`;
+/// - modals from `AppRouter.present(_:)` appear above the tab bar, with their own stack;
+/// - URL schemes and universal links are routed to `AppRouter.open(_:)`.
 ///
-/// What the app decides: the list of tabs and the colors. All of it is injected
-/// from outside (DI); the container knows no concrete tab.
+/// What the app decides: the list of tabs, the colors and the deep link
+/// handlers. All of it is injected from outside (DI); the container knows no
+/// concrete tab.
 ///
 /// Colors are configured independently:
 /// - `accentColor` — the app-wide accent, inherited by every screen;
@@ -24,7 +27,7 @@ import SwiftUI
 ///   When not set, the tab bar uses `accentColor` too.
 ///
 /// The tab bar is the system one: Liquid Glass, VoiceOver, Dynamic Type and
-/// adaptive layouts (such as the side bar on iPhone Duo) come from Apple.
+/// the layout on every device, iPhone Duo included, come from Apple.
 /// There is deliberately no unselected color: the Liquid Glass tab bar
 /// (verified on iOS 27.2) ignores every public API for it.
 ///
@@ -49,8 +52,9 @@ public struct RootTabView: View {
     @State private var router: AppRouter
 
     /// - Parameters:
-    ///   - tabs: Tabs in display order. Their `id`s must be unique.
-    ///   - accentColor: The app accent. Defaults to `AccentColor` from the asset catalog.
+    ///   - tabs: Tabs in display order. Must not be empty; `id`s must be unique.
+    ///   - accentColor: The app accent. Defaults to the app's accent color
+    ///     (`AccentColor` in the asset catalog, if the app has one).
     ///   - tabBarSelectedColor: The selected tab color, tab bar only. Defaults to `accentColor`.
     ///   - deepLinks: Deep link handlers, asked in order. Defaults to none.
     public init(

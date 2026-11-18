@@ -21,7 +21,15 @@ import Foundation
 /// Within a tab, `StackRouter.push(_:)` is enough.
 ///
 /// ```swift
-/// appRouter.perform(OpenHomeScreen(number: 3))
+/// struct OpenHomeDetail: NavigationCommand {
+///     let id: Int
+///     func execute(on router: AppRouter) {
+///         router.select("home")
+///         router.stack(for: "home").push(HomeRoute.detail(id))
+///     }
+/// }
+///
+/// appRouter.perform(OpenHomeDetail(id: 3))
 /// ```
 public protocol NavigationCommand {
     /// Performs the navigation. Called by `AppRouter.perform(_:)`; don't call it directly.

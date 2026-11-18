@@ -11,14 +11,13 @@ import SwiftUI
 ///
 /// Answers **"what am I"**: identifier, title, icon and badge. The screens
 /// (root and routes) come from `NavigationFlow`. It knows nothing about **how**
-/// it will be shown — by the system tab bar or a custom one — so there is no
-/// `tabItem`, color or other rendering here.
+/// it is shown, so there is no `tabItem`, color or other rendering here.
 ///
 /// An app adds a tab by creating a new type and passing it to `RootTabView`.
 /// The library itself does not change (Open/Closed).
 ///
 /// ```swift
-/// enum SettingsRoute: Hashable { case about }
+/// nonisolated enum SettingsRoute: Hashable { case about }
 ///
 /// struct SettingsTab: TabDescriptor {
 ///     let id = "settings"

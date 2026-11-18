@@ -29,9 +29,12 @@ public nonisolated enum ModalStyle {
 ///
 /// ```swift
 /// struct EditProfileModal: ModalDestination {
+///     typealias Route = Never                   // no inner screens
 ///     let style: ModalStyle = .fullScreen
-///     func makeRoot(context: NavigationContext) -> some View { EditProfileScreen() }
-///     func makeScreen(for route: EditProfileRoute, context: NavigationContext) -> some View { … }
+///
+///     func makeRoot(context: NavigationContext) -> some View {
+///         EditProfileScreen(onClose: context.app.dismiss)
+///     }
 /// }
 ///
 /// appRouter.present(EditProfileModal())
