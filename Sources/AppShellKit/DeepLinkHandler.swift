@@ -23,6 +23,11 @@ import Foundation
 /// Handlers are asked in order; the first one that returns a command wins
 /// (Chain of Responsibility).
 ///
+/// Return `nil` for a link this handler doesn't own, so the next handler is
+/// asked. Throw for a link it owns but that is invalid (a missing or
+/// malformed parameter): `AppRouter.open(_:)` stops there and returns
+/// `.failed(error)`, so the app can tell the user or report it.
+///
 /// - Important: A deep link is **untrusted input**: anyone can craft one.
 ///   Validate every parameter, and only ever map links to navigation —
 ///   never to actions such as payments or deletion.
@@ -37,8 +42,21 @@ import Foundation
 /// }
 /// ```
 public protocol DeepLinkHandler {
-    /// Returns a command for the URL, or `nil` if this handler doesn't own it.
-    @MainActor func command(for url: URL) -> (any NavigationCommand)?
+    /// Returns a command for the URL, `nil` if this handler doesn't own it, or
+    /// throws if it owns the link but the link is invalid.
+    @MainActor func command(for url: URL) throws -> (any NavigationCommand)?
+}
+
+/// What happened to a deep link. Returned by `AppRouter.open(_:)` and passed
+/// to `RootTabView`'s `onDeepLink`. Opening a link never crashes the app.
+public nonisolated enum DeepLinkResult {
+    /// A handler recognized the link and its navigation was performed.
+    case handled
+    /// No handler recognized the link. Nothing changed.
+    case unhandled
+    /// A handler recognized the link, but it was invalid or its navigation
+    /// failed (for example an `UnknownTabError`). Nothing changed.
+    case failed(any Error)
 }
 
 /// A ready-made command that presents a modal. Lets deep links and other

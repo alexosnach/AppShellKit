@@ -14,7 +14,7 @@ In Xcode: **File → Add Package Dependencies…**, paste `https://github.com/al
 Or in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/alexosnach/AppShellKit.git", from: "0.1.2")
+.package(url: "https://github.com/alexosnach/AppShellKit.git", from: "0.2.0")
 ```
 
 AppShellKit is pre-1.0: the API may change between minor versions.
@@ -26,7 +26,7 @@ AppShellKit is pre-1.0: the API may change between minor versions.
 - **A modal layer** (`sheet` / `fullScreenCover`) above the tab bar, with its own stack, presentable from anywhere.
 - **Navigation as data.** `AppRouter` and `StackRouter` hold the state, so navigation is testable without UI.
 - **Commands** for cross-feature navigation: a feature exposes a command instead of its internals.
-- **Deep links** from any source (URL schemes, universal links, push, attribution SDKs) through one entry point.
+- **Deep links** from any source (URL schemes, universal links, push, attribution SDKs) through one entry point — and they never crash the app: invalid links come back as a result you can report.
 - **Built for dependency injection.** Factories receive the routers, so view models get everything through `init`.
 
 ## Quick start
@@ -80,7 +80,12 @@ struct MyApp: App {
                 tabs: [HomeTab(storage: storage), ProfileTab(storage: storage)],
                 accentColor: .blue,                 // screens
                 tabBarSelectedColor: .orange,       // tab bar only
-                deepLinks: [HomeDeepLinks()]
+                deepLinks: [HomeDeepLinks()],
+                onDeepLink: { url, result in
+                    if case .failed(let error) = result {
+                        // A link was recognized but invalid: report url and error your way.
+                    }
+                }
             )
         }
     }
@@ -136,20 +141,65 @@ struct HomeDeepLinks: DeepLinkHandler {
 }
 ```
 
-URL schemes and universal links arrive automatically. For other sources (push notifications, attribution SDKs), call `appRouter.open(url)`. Unknown links are ignored and return `false`.
+A handler returns `nil` for a link it doesn't own, and **throws** for a link it owns that is invalid.
+
+URL schemes and universal links arrive automatically, and `RootTabView` reports each one to `onDeepLink`. For other sources (push notifications, attribution SDKs), call `appRouter.open(url)` and look at the result:
+
+```swift
+switch appRouter.open(url) {
+case .handled: break
+case .unhandled: break                       // nobody recognized the link; nothing changed
+case .failed(let error): print(url, error)   // recognized but invalid; nothing changed — report it your way
+}
+```
+
+Opening a link never crashes the app, even when a command built from it names a tab that doesn't exist (`UnknownTabError`). The exception is a trap in your own handler or command code (a force unwrap, an out-of-range index): Swift can't catch traps, so keep that code free of them.
+
+### 5. Commands run as a whole or not at all
+
+`perform(_:)` returns a `Result`. If a command throws, or names a tab that doesn't exist, every change it made — the selected tab, the stacks, the modal — is rolled back and the error is returned. An unknown tab id doesn't stop the command: the rest of it still runs and is then rolled back, so check what you can first and keep side effects outside the router out of commands.
+
+```swift
+struct OrderNotFound: Error {}
+
+struct OpenOrder: NavigationCommand {
+    let id: Int
+    let orders: any OrderService             // your own service
+
+    func execute(on router: AppRouter) throws {
+        guard orders.contains(id) else { throw OrderNotFound() }   // nothing changes
+        router.select("orders")
+        router.stack(for: "orders").push(OrderRoute.detail(id))
+    }
+}
+```
 
 ## Contracts
 
-- **At least one tab; `id`s are unique and stable.** An empty list or a duplicate `id` traps at launch. `select(_:)` or `stack(for:)` with an unknown `id` traps too: it is a programmer error.
+- **At least one tab; `id`s are unique and stable.** An empty list or a duplicate `id` traps at launch. Called directly from your code, `select(_:)` or `stack(for:)` with an unknown `id` traps too: it is a programmer error. Inside a command run by `perform(_:)` or `open(_:)` it fails that command instead (`UnknownTabError`), because the id may come from a link.
 - **`makeRoot` / `makeScreen` may be called many times.** Let screens own their view models with `@State`, and do heavy work in `.task`.
 - **Routes are plain `nonisolated` data** (`Hashable`).
 - **Don't wrap screens in `NavigationStack`** and don't register `navigationDestination` yourself: the container does both.
 - **One modal at a time.** Presenting a new modal replaces the current one.
 - **Commands and deep links only navigate.** Never map a link to an action such as a payment.
 
+## Performance
+
+Measured with `Tests/AppShellKitTests/PerformanceTests.swift` (Release, iPhone 17 simulator, iOS 26.0; one operation = block time / 1,000):
+
+| Operation | Time |
+|---|---|
+| `push` + `pop` | ≈ 6 µs |
+| `perform` (select a tab + push) | ≈ 3 µs |
+| `open` (deep link) | ≈ 4 µs |
+| failed command with rollback | ≈ 1.3 µs |
+| `present` + `dismiss` | ≈ 1 µs |
+
+A 60 Hz frame is 16,600 µs. Memory does not grow over repeated cycles, and `MemoryTests` check that routers, modals, handlers and commands are freed.
+
 ## Logging
 
-The library writes nothing to the console or the system log. Unknown deep links return `false` from `open(_:)`, so the app decides whether and how to report them.
+The library writes nothing to the console or the system log. Instead it returns what happened — `DeepLinkResult` from `open(_:)` and `onDeepLink`, `Result` from `perform(_:)` — so the app decides whether and how to report it.
 
 ## Tab bar
 

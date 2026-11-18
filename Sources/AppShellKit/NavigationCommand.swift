@@ -20,6 +20,10 @@ import Foundation
 /// Use it for navigation **across** tabs, from deep links and notifications.
 /// Within a tab, `StackRouter.push(_:)` is enough.
 ///
+/// A command runs as a whole or not at all: if it throws, or names a tab that
+/// doesn't exist, `AppRouter.perform(_:)` puts navigation back the way it was
+/// and returns the failure. Nothing crashes.
+///
 /// ```swift
 /// struct OpenHomeDetail: NavigationCommand {
 ///     let id: Int
@@ -33,5 +37,23 @@ import Foundation
 /// ```
 public protocol NavigationCommand {
     /// Performs the navigation. Called by `AppRouter.perform(_:)`; don't call it directly.
-    @MainActor func execute(on router: AppRouter)
+    ///
+    /// Throw to reject the navigation (for example, a value that no longer
+    /// exists); `perform(_:)` then rolls back everything this command changed.
+    @MainActor func execute(on router: AppRouter) throws
+}
+
+/// A command named a tab that doesn't exist.
+///
+/// Returned by `AppRouter.perform(_:)` and `AppRouter.open(_:)` instead of
+/// crashing, because a tab id may come from outside (a deep link).
+public nonisolated struct UnknownTabError: Error, Equatable, CustomStringConvertible {
+    /// The id that matched no tab.
+    public let tabID: String
+
+    public init(tabID: String) {
+        self.tabID = tabID
+    }
+
+    public var description: String { "No tab with id '\(tabID)'" }
 }

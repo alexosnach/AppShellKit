@@ -24,6 +24,12 @@ public final class StackRouter {
 
     /// Creates an empty stack. The container makes one per tab and per modal;
     /// create your own only in tests and previews.
+    /// Nothing to clean up. Declared `nonisolated` so freeing the object never
+    /// hops to the main actor: on iOS 26.0 that hop (an isolated deinit) can
+    /// corrupt the heap when the last reference goes away outside a Swift task,
+    /// for example in an XCTest method.
+    nonisolated deinit {}
+
     public init() {}
 
     /// Pushes a route onto the stack.

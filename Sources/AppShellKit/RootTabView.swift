@@ -48,6 +48,9 @@ public struct RootTabView: View {
     /// The selected tab color. `nil` means `accentColor`.
     let tabBarSelectedColor: Color?
 
+    /// Told about every link that arrives through `onOpenURL`.
+    let onDeepLink: ((URL, DeepLinkResult) -> Void)?
+
     /// App-wide navigation. Created once for the container's lifetime.
     @State private var router: AppRouter
 
@@ -57,16 +60,21 @@ public struct RootTabView: View {
     ///     (`AccentColor` in the asset catalog, if the app has one).
     ///   - tabBarSelectedColor: The selected tab color, tab bar only. Defaults to `accentColor`.
     ///   - deepLinks: Deep link handlers, asked in order. Defaults to none.
+    ///   - onDeepLink: Called with every URL scheme or universal link and what
+    ///     happened to it, so the app can report unknown or invalid links (to
+    ///     analytics, or by telling the user). Defaults to none.
     public init(
         tabs: [any TabDescriptor],
         accentColor: Color = .accentColor,
         tabBarSelectedColor: Color? = nil,
-        deepLinks: [any DeepLinkHandler] = []
+        deepLinks: [any DeepLinkHandler] = [],
+        onDeepLink: ((URL, DeepLinkResult) -> Void)? = nil
     ) {
         precondition(!tabs.isEmpty, "RootTabView needs at least one tab")
         self.tabs = tabs
         self.accentColor = accentColor
         self.tabBarSelectedColor = tabBarSelectedColor
+        self.onDeepLink = onDeepLink
         _router = State(initialValue: AppRouter(tabIDs: tabs.map(\.id), deepLinkHandlers: deepLinks))
     }
 
@@ -83,7 +91,10 @@ public struct RootTabView: View {
         .sheet(item: modalBinding(for: .sheet), content: modalContent)
         .fullScreenCover(item: modalBinding(for: .fullScreen), content: modalContent)
         // URL schemes and universal links. Other sources call `AppRouter.open(_:)`.
-        .onOpenURL { url in router.open(url) }
+        .onOpenURL { url in
+            let result = router.open(url)
+            onDeepLink?(url, result)
+        }
         .environment(router)
     }
 
